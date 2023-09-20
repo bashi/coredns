@@ -11,12 +11,19 @@ import (
 
 type Delay struct {
 	duration time.Duration
+}
+
+type Handler struct {
+	Delays []Delay
+
 	Next plugin.Handler
 }
 
-func (d Delay) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	time.Sleep(d.duration)
-	return plugin.NextOrFailure(d.Name(), d.Next, ctx, w, r)
+func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	for _, delay := range h.Delays {
+		time.Sleep(delay.duration)
+	}
+	return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 }
 
-func (d Delay) Name() string { return "delay" }
+func (h Handler) Name() string { return "delay" }
