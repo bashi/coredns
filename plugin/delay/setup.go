@@ -55,6 +55,14 @@ func delayParse(c *caddy.Controller) (handler Handler, err error) {
 		}
 
 		if (nargs >= 3) {
+			normalized := plugin.Host(args[2]).NormalizeExact()
+			if len(normalized) != 1 {
+				return handler, plugin.Error("delay", fmt.Errorf("invalid host: %s", args[2]))
+			}
+			delay.name = normalized[0]
+		}
+
+		if (nargs >= 4) {
 			return handler, plugin.Error("delay", c.ArgErr())
 		}
 
