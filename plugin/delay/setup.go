@@ -7,6 +7,8 @@ import (
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+
+	"github.com/miekg/dns"
 )
 
 func init() { plugin.Register("delay", setup) }
@@ -31,18 +33,31 @@ func delayParse(c *caddy.Controller) (handler Handler, err error) {
 	for c.Next() {
 		delay := Delay{}
 		args := c.RemainingArgs()
-		switch len(args) {
-		case 0:
+		nargs := len(args)
+		if (nargs == 0) {
 			delay.duration = 50 * time.Millisecond
-		case 1:
+		} else {
 			dur, err := time.ParseDuration(args[0])
 			if err != nil {
 				return handler, plugin.Error("delay", fmt.Errorf("invalid duration: %q", args[0]))
 			}
 			delay.duration = dur
-		default:
+		}
+
+		if (nargs >= 2) {
+			qtype, ok := dns.StringToType[args[1]]
+			if !ok {
+				return handler, c.Errf("invalid RR class %s", args[1])
+			}
+			delay.qtype = qtype
+		} else {
+			delay.qtype = dns.TypeANY
+		}
+
+		if (nargs >= 3) {
 			return handler, plugin.Error("delay", c.ArgErr())
 		}
+
 		handler.Delays = append(handler.Delays, delay)
 	}
 
